@@ -119,7 +119,8 @@ fieldset.bad .choice span{border-color:var(--err)}
         <div class="groups">
           <label class="choice"><input type="radio" name="group" value="พนักงาน"><span>พนักงาน<small>ยังทำงานอยู่</small></span></label>
           <label class="choice"><input type="radio" name="group" value="ผู้เกษียณ"><span>ผู้เกษียณ<small>เกษียณแล้ว</small></span></label>
-          <label class="choice"><input type="radio" name="group" value="แขก"><span>แขก<small>ไม่ใช่พนักงาน</small></span></label>
+          <label class="choice"><input type="radio" name="group" value="ญาติพนักงาน"><span>ญาติพนักงาน<small>ครอบครัวพนักงาน</small></span></label>
+          <label class="choice"><input type="radio" name="group" value="แขก"><span>แขก<small>คนที่พนักงานพามา</small></span></label>
         </div>
         <span class="msg" id="group-msg" hidden></span>
       </fieldset>
@@ -178,7 +179,7 @@ fieldset.bad .choice span{border-color:var(--err)}
     TEST = sessionStorage.getItem('tc_test') === '1';
   } catch (x) {}
   var API_PLACEHOLDER = /YOUR_DEPLOYMENT_ID/.test(CFG.API_URL);
-  var GROUPS = ['พนักงาน', 'ผู้เกษียณ', 'แขก'];   // ประเภทคน
+  var GROUPS = ['พนักงาน', 'ผู้เกษียณ', 'ญาติพนักงาน', 'แขก'];   // ประเภทคน
   var $ = function (id) { return document.getElementById(id); };
   var state = { profile: null, idToken: null, busy: false, retry: null, formMode: 'register', last: null };
 
@@ -273,7 +274,7 @@ fieldset.bad .choice span{border-color:var(--err)}
   var FIELD_ERR = {
     invalid_first: ['first', 'ใส่ชื่อ'],
     invalid_last: ['last', 'ใส่นามสกุล'],
-    invalid_group: ['group', 'เลือก พนักงาน ผู้เกษียณ หรือ แขก'],
+    invalid_group: ['group', 'เลือกว่าคุณเป็นใคร'],
     employee_required: ['emp', 'ใส่รหัสพนักงาน'],
     invalid_employee: ['emp', 'ใส่เป็นตัวเลขเท่านั้น']
   };
@@ -311,7 +312,8 @@ fieldset.bad .choice span{border-color:var(--err)}
   function groupValue() { var c = document.querySelector('input[name=group]:checked'); return c ? c.value : ''; }
   function setGroup(g) { Array.prototype.forEach.call(document.querySelectorAll('input[name=group]'), function (x) { x.checked = x.value === g; }); }
   function syncEmpLabel() {
-    segs($('emp-label'), groupValue() === 'แขก' ? 'รหัสพนักงาน|ของคนที่พาเข้า' : 'รหัสพนักงาน');
+    var g = groupValue();
+    segs($('emp-label'), g === 'แขก' ? 'รหัสพนักงาน|ของคนที่พาเข้า' : g === 'ญาติพนักงาน' ? 'รหัสพนักงาน|ของญาติ' : 'รหัสพนักงาน');
   }
   function clearErrors() {
     ['first', 'last', 'emp', 'group'].forEach(function (k) {
@@ -349,8 +351,8 @@ fieldset.bad .choice span{border-color:var(--err)}
     var bad = [];
     if (!v.firstName) bad.push(['first', 'ใส่ชื่อ']);
     if (!v.lastName) bad.push(['last', 'ใส่นามสกุล']);
-    if (GROUPS.indexOf(v.group) < 0) bad.push(['group', 'เลือก พนักงาน ผู้เกษียณ หรือ แขก']);
-    if (!v.employeeId) bad.push(['emp', v.group === 'แขก' ? 'ใส่รหัสพนักงานของคนที่พาเข้า' : 'ใส่รหัสพนักงาน']);
+    if (GROUPS.indexOf(v.group) < 0) bad.push(['group', 'เลือกว่าคุณเป็นใคร']);
+    if (!v.employeeId) bad.push(['emp', v.group === 'แขก' ? 'ใส่รหัสพนักงานของคนที่พาเข้า' : v.group === 'ญาติพนักงาน' ? 'ใส่รหัสพนักงานของญาติ' : 'ใส่รหัสพนักงาน']);
     else if (!/^[0-9]+$/.test(v.employeeId)) bad.push(['emp', 'ใส่เป็นตัวเลขเท่านั้น']);
     return { v: v, bad: bad };
   }
