@@ -72,6 +72,7 @@ fieldset.bad .choice span{border-color:var(--err)}
 .done h1{font-size:40px;margin-bottom:4px}
 .date{font-size:32px;font-weight:700;margin:0 0 4px}
 .sub{font-size:24px;color:var(--ink2);margin:0 0 6px}
+.build{margin:18px 0 0;font-size:15px;color:var(--muted,#5b6475);text-align:center}
 .who{font-size:24px;margin:10px 0 0;padding:10px 12px;background:var(--soft);border-radius:14px}
 .done .stack{margin-top:22px}
 @media (prefers-reduced-motion:no-preference){
@@ -150,6 +151,7 @@ fieldset.bad .choice span{border-color:var(--err)}
       <button type="button" class="primary" id="btn-close">ปิด</button>
       <button type="button" class="quiet" id="btn-edit">แก้ข้อมูล</button>
     </div>
+    <p class="build" id="build-no"></p>
   </section>
 
   <!-- ผิดพลาด -->
@@ -170,6 +172,7 @@ fieldset.bad .choice span{border-color:var(--err)}
 (function () {
   'use strict';
   var CFG = window.CHECKIN_CONFIG;
+  var BUILD = '3';   // เพิ่มเลขทุกครั้งที่แก้หน้านี้ — หน้าเก่าที่เครื่องจำไว้จะเห็นเลขใหม่แล้วโหลดหน้าใหม่เอง
   // โหมดทดสอบ: ต้องมี ?mock=1 และเปิดจากไฟล์ในเครื่อง (file:) เท่านั้น — บน GitHub Pages ไม่ทำงานเด็ดขาด
   var MOCK = /[?&]mock=1(&|$)/.test(location.search) && location.protocol === 'file:';
   // โหมดทดสอบนอกไลน์ (?test=1 บนเว็บ): ให้ login LINE ในเบราว์เซอร์ได้ — ใช้ทดสอบจาก PC เท่านั้น; ฝั่งเซิร์ฟเวอร์ยังตรวจ ID token เหมือนเดิม
@@ -240,10 +243,31 @@ fieldset.bad .choice span{border-color:var(--err)}
       document.head.appendChild(s);
     });
   }
+  // ไลน์/เบราว์เซอร์อาจจำหน้าเก่าไว้ (GitHub Pages ให้เก็บได้ 10 นาที): ถามหน้าล่าสุดจากเซิร์ฟเวอร์ ถ้าเลขใหม่กว่า → โหลดใหม่ครั้งเดียว
+  // ถ้าตรวจไม่ได้ (เน็ตช้า/ล่ม) ข้ามไปเช็กอินต่อ ไม่ขวางการใช้งาน
+  function freshCheck() {
+    if (MOCK || location.protocol === 'file:' || !window.fetch) return Promise.resolve();
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var t = setTimeout(function () { if (ctrl) ctrl.abort(); }, 2500);
+    return fetch(location.pathname + '?nocache=' + Date.now(), { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+      .then(function (r) { return r.ok ? r.text() : ''; })
+      .then(function (html) {
+        clearTimeout(t);
+        var m = /var BUILD = '(\d+)'/.exec(html || '');
+        if (!m || +m[1] <= +BUILD) return;
+        var key = 'tc_reload_' + m[1];
+        try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1'); } catch (x) { return; }
+        var q = location.search.replace(/([?&])b=\d+&?/, '$1').replace(/[?&]$/, '');
+        location.replace(location.pathname + (q ? q + '&' : '?') + 'b=' + m[1] + location.hash);
+        return new Promise(function () {});   // รอหน้าใหม่ ไม่ทำต่อ
+      })
+      .catch(function () { clearTimeout(t); });
+  }
   function start() {
     setBusy(true);
     loading('กำลังเช็กอิน…');
-    loadSdk()
+    $('build-no').textContent = 'รุ่น ' + BUILD;
+    freshCheck().then(loadSdk)
       .then(function () {
         if (MOCK && !window.liff) installBuiltinMock();
         return liff.init({ liffId: CFG.LIFF_ID });
