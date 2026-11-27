@@ -171,6 +171,12 @@ fieldset.bad .choice span{border-color:var(--err)}
   var CFG = window.CHECKIN_CONFIG;
   // โหมดทดสอบ: ต้องมี ?mock=1 และเปิดจากไฟล์ในเครื่อง (file:) เท่านั้น — บน GitHub Pages ไม่ทำงานเด็ดขาด
   var MOCK = /[?&]mock=1(&|$)/.test(location.search) && location.protocol === 'file:';
+  // โหมดทดสอบนอกไลน์ (?test=1 บนเว็บ): ให้ login LINE ในเบราว์เซอร์ได้ — ใช้ทดสอบจาก PC เท่านั้น; ฝั่งเซิร์ฟเวอร์ยังตรวจ ID token เหมือนเดิม
+  var TEST = false;
+  try {
+    if (/[?&]test=1(&|$)/.test(location.search)) sessionStorage.setItem('tc_test', '1');
+    TEST = sessionStorage.getItem('tc_test') === '1';
+  } catch (x) {}
   var API_PLACEHOLDER = /YOUR_DEPLOYMENT_ID/.test(CFG.API_URL);
   var GROUPS = ['พนักงาน', 'ผู้เกษียณ', 'แขก'];   // ประเภทคน
   var $ = function (id) { return document.getElementById(id); };
@@ -242,7 +248,10 @@ fieldset.bad .choice span{border-color:var(--err)}
         return liff.init({ liffId: CFG.LIFF_ID });
       })
       .then(function () {
-        if (!liff.isInClient()) return showError('notline');
+        if (!liff.isInClient()) {
+          if (!TEST) return showError('notline');
+          if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+        }
         var tok = liff.getIDToken();
         if (!tok) return showError('token', function () { location.reload(); });
         state.idToken = tok;
@@ -282,6 +291,7 @@ fieldset.bad .choice span{border-color:var(--err)}
         if (r && r.ok) return r;
         var code = r && r.error;
         if (FIELD_ERR[code]) return { fieldError: code };
+        if ((code === 'bad_token' || code === 'no_token') && TEST && !inClient()) { try { liff.logout(); } catch (x) {} location.reload(); return; }
         if (code === 'bad_token' || code === 'no_token') showError('token', function () { location.reload(); });
         else if (code === 'busy') showError('busy', retry);
         else if (code === 'not_configured') showError('setup', retry);
