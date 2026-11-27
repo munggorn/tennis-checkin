@@ -172,7 +172,7 @@ fieldset.bad .choice span{border-color:var(--err)}
 (function () {
   'use strict';
   var CFG = window.CHECKIN_CONFIG;
-  var BUILD = '3';   // เพิ่มเลขทุกครั้งที่แก้หน้านี้ — หน้าเก่าที่เครื่องจำไว้จะเห็นเลขใหม่แล้วโหลดหน้าใหม่เอง
+  var BUILD = '4';   // เพิ่มเลขทุกครั้งที่แก้หน้านี้ — หน้าเก่าที่เครื่องจำไว้จะเห็นเลขใหม่แล้วโหลดหน้าใหม่เอง
   // โหมดทดสอบ: ต้องมี ?mock=1 และเปิดจากไฟล์ในเครื่อง (file:) เท่านั้น — บน GitHub Pages ไม่ทำงานเด็ดขาด
   var MOCK = /[?&]mock=1(&|$)/.test(location.search) && location.protocol === 'file:';
   // โหมดทดสอบนอกไลน์ (?test=1 บนเว็บ): ให้ login LINE ในเบราว์เซอร์ได้ — ใช้ทดสอบจาก PC เท่านั้น; ฝั่งเซิร์ฟเวอร์ยังตรวจ ID token เหมือนเดิม
