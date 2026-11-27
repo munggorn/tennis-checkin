@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#ffffff">
+<title>เช็กอินสนามเทนนิส</title>
+<script>
+/* ───── ตั้งค่า ───── */
+window.CHECKIN_CONFIG = {
+  LIFF_ID: '2012829279-KAJpnEAO',                // LIFF app (endpoint https://munggorn.github.io/tennis-checkin/)
+  API_URL: 'https://script.google.com/macros/s/AKfycbyLa0QLEGhyrOmVDj9nsa2Ky7EkErVEwQHQZWw1BYDlMIimou5EeeWfw8OB7itsY8fZ/exec'   // Web app URL ของ Apps Script (deploy.sh gas ใส่ให้)
+};
+</script>
+<style>
+:root{
+  --bg:#ffffff; --ink:#13233f; --ink2:#34445e; --line:#13233f; --soft:#eef2f7;
+  --green:#06c755; --greenInk:#06210f; --greenEdge:#05a647;
+  --err:#a8201a; --errSoft:#fdecea; --focus:#1b5fd1;
+  --f:"ChulaCharasNew","Sarabun","Noto Sans Thai",sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:22px;line-height:1.5;
+  overflow-wrap:break-word}
+h1[tabindex]:focus{outline:none}
+main{max-width:480px;margin:0 auto;padding:24px 16px calc(32px + env(safe-area-inset-bottom))}
+h1{font-size:36px;line-height:1.25;margin:0 0 8px;font-weight:700}
+p{margin:0 0 16px}
+.lead{font-size:22px;color:var(--ink2)}
+.nw{white-space:nowrap;display:inline-block}
+
+/* ปุ่ม */
+button{font:inherit;font-size:28px;font-weight:700;line-height:1.25;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;min-height:76px;padding:14px 16px;border-radius:18px;border:3px solid var(--line);
+  background:#fff;color:var(--ink);text-align:center;touch-action:manipulation}
+.primary{background:var(--green);border-color:var(--greenEdge);color:var(--greenInk)}
+.quiet{min-height:64px;font-size:26px;border-width:2px}
+button:disabled{opacity:.55;cursor:progress}
+:focus-visible{outline:4px solid var(--focus);outline-offset:3px}
+.stack{display:grid;gap:14px;margin-top:20px}
+
+/* ฟอร์ม */
+.field{margin:0 0 18px}
+.field label{display:block;font-size:24px;font-weight:700;margin:0 0 6px}
+input[type=text]{font:inherit;font-size:26px;width:100%;min-height:68px;padding:10px 16px;
+  border:3px solid var(--ink2);border-radius:14px;color:var(--ink);background:#fff}
+input[type=text]:focus-visible{outline:4px solid var(--focus);outline-offset:2px;border-color:var(--ink)}
+.field.bad input{border-color:var(--err)}
+.msg{display:block;color:var(--err);font-size:21px;font-weight:700;margin-top:6px}
+fieldset{border:0;margin:0 0 18px;padding:0;min-width:0}
+legend{font-size:24px;font-weight:700;padding:0;margin:0 0 8px}
+.groups{display:grid;gap:12px}
+.choice{position:relative;display:block}
+.choice input{position:absolute;opacity:0;width:1px;height:1px}
+.choice span{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:84px;
+  padding:10px 14px;border:3px solid var(--line);border-radius:18px;background:#fff;cursor:pointer;
+  font-size:28px;font-weight:700;line-height:1.25;text-align:center}
+.choice span small{font-size:20px;font-weight:400}
+.choice input:checked + span{background:var(--ink);color:#fff}
+.choice input:checked + span::before{content:"✓";position:absolute;left:20px;top:50%;transform:translateY(-50%);font-size:34px}
+.choice input:focus-visible + span{outline:4px solid var(--focus);outline-offset:3px}
+fieldset.bad .choice span{border-color:var(--err)}
+
+/* หน้าเช็กอินแล้ว */
+.done{text-align:center;padding-top:8px}
+.tick{width:156px;height:156px;margin:4px auto 14px;border-radius:50%;background:var(--green);display:grid;place-items:center}
+.tick svg{width:96px;height:96px}
+.done h1{font-size:40px;margin-bottom:4px}
+.date{font-size:32px;font-weight:700;margin:0 0 4px}
+.sub{font-size:24px;color:var(--ink2);margin:0 0 6px}
+.who{font-size:24px;margin:10px 0 0;padding:10px 12px;background:var(--soft);border-radius:14px}
+.done .stack{margin-top:22px}
+@media (prefers-reduced-motion:no-preference){
+  .tick.pop{animation:pop .35s ease-out}
+  @keyframes pop{from{transform:scale(.6)}to{transform:scale(1)}}
+}
+
+/* โหลด / ผิดพลาด */
+.center{text-align:center;padding-top:48px}
+.spin{width:72px;height:72px;margin:0 auto 20px;border-radius:50%;border:8px solid var(--soft);border-top-color:var(--green)}
+@media (prefers-reduced-motion:no-preference){.spin{animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}}
+.bigicon{width:112px;height:112px;margin:0 auto 16px;border-radius:50%;display:grid;place-items:center;
+  font-size:64px;font-weight:700;background:var(--errSoft);color:var(--err);border:4px solid var(--err)}
+.bigicon.info{background:var(--soft);color:var(--ink);border-color:var(--ink)}
+.formerr{margin:0 0 16px;padding:12px 16px;border-radius:14px;background:var(--errSoft);border:3px solid var(--err);color:var(--err);font-weight:700}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<main id="app">
+
+  <!-- กำลังโหลด -->
+  <section id="v-loading" class="center" aria-live="polite">
+    <div class="spin" aria-hidden="true"></div>
+    <h1 id="loading-text">กำลังเช็กอิน…</h1>
+  </section>
+
+  <!-- ฟอร์ม: ครั้งแรก / แก้ข้อมูล -->
+  <section id="v-form" hidden>
+    <h1 id="form-title" tabindex="-1">ลงชื่อครั้งแรก</h1>
+    <p class="lead" id="form-lead">กรอกครั้งเดียว ครั้งหน้าแตะลิงก์ก็เช็กอินเลย</p>
+    <form id="form" novalidate>
+      <div class="field" id="f-first">
+        <label for="first">ชื่อ</label>
+        <input type="text" id="first" name="first" autocomplete="given-name" maxlength="60" aria-describedby="first-msg">
+        <span class="msg" id="first-msg" hidden></span>
+      </div>
+      <div class="field" id="f-last">
+        <label for="last">นามสกุล</label>
+        <input type="text" id="last" name="last" autocomplete="family-name" maxlength="60" aria-describedby="last-msg">
+        <span class="msg" id="last-msg" hidden></span>
+      </div>
+      <fieldset id="f-group" aria-describedby="group-msg">
+        <legend>คุณเป็น</legend>
+        <div class="groups">
+          <label class="choice"><input type="radio" name="group" value="พนักงาน"><span>พนักงาน<small>ยังทำงานอยู่</small></span></label>
+          <label class="choice"><input type="radio" name="group" value="ผู้เกษียณ"><span>ผู้เกษียณ<small>เกษียณแล้ว</small></span></label>
+          <label class="choice"><input type="radio" name="group" value="แขก"><span>แขก<small>ไม่ใช่พนักงาน</small></span></label>
+        </div>
+        <span class="msg" id="group-msg" hidden></span>
+      </fieldset>
+      <div class="field" id="f-emp">
+        <label for="emp" id="emp-label">รหัสพนักงาน</label>
+        <input type="text" id="emp" name="emp" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="40" aria-describedby="emp-msg">
+        <span class="msg" id="emp-msg" hidden></span>
+      </div>
+      <p class="formerr" id="form-err" role="alert" hidden></p>
+      <div class="stack">
+        <button type="submit" class="primary" id="form-submit">เช็กอิน</button>
+        <button type="button" class="quiet" id="form-cancel" hidden>ยกเลิก</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- เช็กอินแล้ว -->
+  <section id="v-done" class="done" hidden>
+    <div class="tick" id="tick" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#06210f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"/></svg>
+    </div>
+    <h1 id="done-title" tabindex="-1">เช็กอินแล้ว</h1>
+    <p class="date" id="done-date"></p>
+    <p class="sub" id="done-sub" hidden>นับแล้ว ไม่ต้องแตะอีก</p>
+    <p class="who" id="done-who"></p>
+    <div class="stack">
+      <button type="button" class="primary" id="btn-close">ปิด</button>
+      <button type="button" class="quiet" id="btn-edit">แก้ข้อมูล</button>
+    </div>
+  </section>
+
+  <!-- ผิดพลาด -->
+  <section id="v-error" class="center" hidden>
+    <div class="bigicon" id="err-icon" aria-hidden="true">!</div>
+    <h1 id="err-title" tabindex="-1">ต่อเน็ตไม่ได้</h1>
+    <p class="lead" id="err-text">ตรวจสัญญาณเน็ต แล้วลองอีกครั้ง</p>
+    <div class="stack">
+      <button type="button" class="primary" id="err-retry">ลองอีกครั้ง</button>
+      <button type="button" class="quiet" id="err-close" hidden>ปิด</button>
+    </div>
+  </section>
+
+  <p class="sr" id="live" aria-live="assertive"></p>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var CFG = window.CHECKIN_CONFIG;
+  // โหมดทดสอบ: ต้องมี ?mock=1 และเปิดจากไฟล์ในเครื่อง (file:) เท่านั้น — บน GitHub Pages ไม่ทำงานเด็ดขาด
+  var MOCK = /[?&]mock=1(&|$)/.test(location.search) && location.protocol === 'file:';
+  var API_PLACEHOLDER = /YOUR_DEPLOYMENT_ID/.test(CFG.API_URL);
+  var GROUPS = ['พนักงาน', 'ผู้เกษียณ', 'แขก'];   // ประเภทคน
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { profile: null, idToken: null, busy: false, retry: null, formMode: 'register', last: null };
+
+  // ───── หน้าจอ ─────
+  var VIEWS = ['v-loading', 'v-form', 'v-done', 'v-error'];
+  function show(id, focusId) {
+    VIEWS.forEach(function (v) { $(v).hidden = v !== id; });
+    window.scrollTo(0, 0);
+    if (focusId) { var el = $(focusId); if (el) el.focus({ preventScroll: true }); }
+  }
+  function loading(text) { $('loading-text').textContent = text || 'กำลังเช็กอิน…'; show('v-loading'); }
+  function setBusy(b) {
+    state.busy = b;
+    Array.prototype.forEach.call(document.querySelectorAll('button'), function (x) { x.disabled = b; });
+  }
+  // ข้อความภาษาไทยตัดบรรทัดตามคำ: แบ่งช่วงด้วย | แต่ละช่วงไม่ตัดกลาง
+  function segs(el, text) {
+    el.textContent = '';
+    text.split('|').forEach(function (t) {
+      if (/^ /.test(t)) el.appendChild(document.createTextNode(' '));
+      var sp = document.createElement('span'); sp.className = 'nw'; sp.textContent = t.trim(); el.appendChild(sp);
+    });
+  }
+
+  var ERR = {
+    network: ['ต่อเน็ตไม่ได้', 'ตรวจสัญญาณเน็ต| แล้วลองอีกครั้ง', true],
+    notline: ['เปิดลิงก์นี้ในไลน์', 'กลับไปที่กลุ่มไลน์| แล้วแตะลิงก์เช็กอิน|ที่ปักหมุดไว้', false],
+    token:   ['ต้องเปิดใหม่', 'กดปิด| แล้วแตะลิงก์|ในกลุ่มไลน์อีกครั้ง', true],
+    busy:    ['คนใช้พร้อมกันเยอะ', 'รอสักครู่| แล้วลองอีกครั้ง', true],
+    server:  ['ระบบขัดข้อง', 'ลองอีกครั้ง| ถ้ายังไม่ได้|ให้บอกผู้ดูแลกลุ่ม', true],
+    setup:   ['ระบบยังตั้งค่าไม่เสร็จ', 'บอกผู้ดูแลกลุ่ม', true]
+  };
+  function inClient() { try { return !!(window.liff && liff.isInClient && liff.isInClient()); } catch (x) { return false; } }
+  function showError(kind, retry) {
+    var e = ERR[kind] || ERR.server;
+    $('err-title').textContent = e[0];
+    segs($('err-text'), e[1]);
+    $('err-icon').className = 'bigicon' + (kind === 'notline' ? ' info' : '');
+    $('err-icon').textContent = kind === 'notline' ? 'i' : '!';
+    state.retry = retry || null;
+    $('err-retry').hidden = !(e[2] && retry);
+    $('err-close').hidden = !(kind === 'token' || kind === 'notline' || kind === 'setup') || !inClient();
+    setBusy(false);
+    show('v-error', 'err-title');
+  }
+
+  // ───── LIFF ─────
+  function loadSdk() {
+    if (MOCK) return Promise.resolve();
+    if (window.liff && window.liff.init) return Promise.resolve();
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
+      s.charset = 'utf-8';
+      var t = setTimeout(function () { reject(new Error('sdk timeout')); }, 15000);
+      s.onload = function () { clearTimeout(t); resolve(); };
+      s.onerror = function () { clearTimeout(t); s.remove(); reject(new Error('sdk load')); };
+      document.head.appendChild(s);
+    });
+  }
+  function start() {
+    setBusy(true);
+    loading('กำลังเช็กอิน…');
+    loadSdk()
+      .then(function () {
+        if (MOCK && !window.liff) installBuiltinMock();
+        return liff.init({ liffId: CFG.LIFF_ID });
+      })
+      .then(function () {
+        if (!liff.isInClient()) return showError('notline');
+        var tok = liff.getIDToken();
+        if (!tok) return showError('token', function () { location.reload(); });
+        state.idToken = tok;
+        return call({ action: 'status' }, start).then(function (r) {
+          if (!r) return;
+          if (!r.registered) return openForm('register');
+          showDone(r.checkedIn ? 'new' : 'again', r);
+        });
+      })
+      .catch(function (err) {
+        console.warn(err);
+        showError('network', start);
+      });
+  }
+
+  // ───── เรียก Apps Script ─────
+  // ส่ง body เป็นข้อความธรรมดา (text/plain) ไม่มี header อื่น → เบราว์เซอร์ไม่ส่ง CORS preflight
+  // Apps Script ตอบ 302 ไปที่ script.googleusercontent.com แล้วจึงได้ JSON; fetch ตามไปให้เอง (redirect:'follow')
+  var FIELD_ERR = {
+    invalid_first: ['first', 'ใส่ชื่อ'],
+    invalid_last: ['last', 'ใส่นามสกุล'],
+    invalid_group: ['group', 'เลือก พนักงาน ผู้เกษียณ หรือ แขก'],
+    employee_required: ['emp', 'ใส่รหัสพนักงาน'],
+    invalid_employee: ['emp', 'ใส่เป็นตัวเลขเท่านั้น']
+  };
+  function call(payload, retry) {
+    payload.idToken = state.idToken;
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 25000);
+    return fetch(CFG.API_URL, {
+      method: 'POST', redirect: 'follow', body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: ctrl ? ctrl.signal : undefined
+    })
+      .then(function (res) { if (!res.ok) throw new Error('http ' + res.status); return res.json(); })
+      .then(function (r) {
+        clearTimeout(timer);
+        if (r && r.ok) return r;
+        var code = r && r.error;
+        if (FIELD_ERR[code]) return { fieldError: code };
+        if (code === 'bad_token' || code === 'no_token') showError('token', function () { location.reload(); });
+        else if (code === 'busy') showError('busy', retry);
+        else if (code === 'not_configured') showError('setup', retry);
+        else if (code === 'not_registered') openForm('register');
+        else if (code === 'verify_unavailable') showError('network', retry);
+        else showError('server', retry);
+        return null;
+      }, function (err) {
+        clearTimeout(timer);
+        console.warn(err);
+        showError('network', retry);
+        return null;
+      });
+  }
+
+  // ───── ฟอร์ม ─────
+  function groupValue() { var c = document.querySelector('input[name=group]:checked'); return c ? c.value : ''; }
+  function setGroup(g) { Array.prototype.forEach.call(document.querySelectorAll('input[name=group]'), function (x) { x.checked = x.value === g; }); }
+  function syncEmpLabel() {
+    segs($('emp-label'), groupValue() === 'แขก' ? 'รหัสพนักงาน|ของคนที่พาเข้า' : 'รหัสพนักงาน');
+  }
+  function clearErrors() {
+    ['first', 'last', 'emp', 'group'].forEach(function (k) {
+      $('f-' + k).classList.remove('bad'); $(k + '-msg').hidden = true; $(k + '-msg').textContent = '';
+      var inp = $(k); if (inp) inp.removeAttribute('aria-invalid');
+    });
+    $('form-err').hidden = true;
+  }
+  function fieldError(k, text) {
+    $('f-' + k).classList.add('bad');
+    $(k + '-msg').textContent = text; $(k + '-msg').hidden = false;
+    var inp = $(k); if (inp) inp.setAttribute('aria-invalid', 'true');
+  }
+  function openForm(mode) {
+    state.formMode = mode;
+    clearErrors();
+    var p = mode === 'edit' && state.profile ? state.profile : { firstName: '', lastName: '', employeeId: '', group: '' };
+    $('first').value = p.firstName; $('last').value = p.lastName; $('emp').value = p.employeeId; setGroup(p.group);
+    syncEmpLabel();
+    $('form-title').textContent = mode === 'edit' ? 'แก้ข้อมูล' : 'ลงชื่อครั้งแรก';
+    segs($('form-lead'), mode === 'edit' ? 'แก้แล้วกดบันทึก' : 'กรอกครั้งเดียว| ครั้งหน้าแตะลิงก์|ก็เช็กอินเลย');
+    $('form-submit').textContent = mode === 'edit' ? 'บันทึก' : 'เช็กอิน';
+    $('form-cancel').hidden = mode !== 'edit';
+    setBusy(false);
+    show('v-form', 'form-title');
+  }
+  function toAsciiDigits(s) { return s.replace(/[๐-๙]/g, function (d) { return String(d.charCodeAt(0) - 0x0E50); }); }
+  function readForm() {
+    var v = {
+      firstName: $('first').value.replace(/\s+/g, ' ').trim(),
+      lastName: $('last').value.replace(/\s+/g, ' ').trim(),
+      employeeId: toAsciiDigits($('emp').value).replace(/\s+/g, ''),
+      group: groupValue()
+    };
+    var bad = [];
+    if (!v.firstName) bad.push(['first', 'ใส่ชื่อ']);
+    if (!v.lastName) bad.push(['last', 'ใส่นามสกุล']);
+    if (GROUPS.indexOf(v.group) < 0) bad.push(['group', 'เลือก พนักงาน ผู้เกษียณ หรือ แขก']);
+    if (!v.employeeId) bad.push(['emp', v.group === 'แขก' ? 'ใส่รหัสพนักงานของคนที่พาเข้า' : 'ใส่รหัสพนักงาน']);
+    else if (!/^[0-9]+$/.test(v.employeeId)) bad.push(['emp', 'ใส่เป็นตัวเลขเท่านั้น']);
+    return { v: v, bad: bad };
+  }
+  function focusField(k) { var el = k === 'group' ? document.querySelector('input[name=group]') : $(k); if (el) el.focus(); }
+  function submitForm(ev) {
+    if (ev) ev.preventDefault();
+    if (state.busy) return;
+    clearErrors();
+    var f = readForm();
+    if (f.bad.length) {
+      f.bad.forEach(function (b) { fieldError(b[0], b[1]); });
+      focusField(f.bad[0][0]);
+      $('live').textContent = f.bad.map(function (b) { return b[1]; }).join(' ');
+      return;
+    }
+    var mode = state.formMode;
+    setBusy(true);
+    var btn = $('form-submit'); btn.textContent = mode === 'edit' ? 'กำลังบันทึก…' : 'กำลังเช็กอิน…';
+    var payload = { action: mode === 'edit' ? 'update' : 'register', firstName: f.v.firstName, lastName: f.v.lastName,
+                    employeeId: f.v.employeeId, group: f.v.group };
+    var again = function () { show('v-form'); submitForm(); };
+    call(payload, again).then(function (r) {
+      btn.textContent = mode === 'edit' ? 'บันทึก' : 'เช็กอิน';
+      if (!r) return;
+      setBusy(false);
+      if (r.fieldError) { var fe = FIELD_ERR[r.fieldError]; fieldError(fe[0], fe[1]); focusField(fe[0]); return; }
+      showDone(mode === 'edit' ? 'saved' : (r.checkedIn ? 'new' : 'again'), r);
+    });
+  }
+
+  // ───── เช็กอินแล้ว ─────
+  function showDone(kind, r) {
+    state.last = r;
+    state.profile = r.profile || state.profile;
+    $('done-title').textContent = kind === 'new' ? 'เช็กอินแล้ว' : kind === 'saved' ? 'บันทึกแล้ว' : 'วันนี้เช็กอินแล้ว';
+    $('done-sub').hidden = kind !== 'again';
+    $('done-date').textContent = r.date ? 'วันที่ ' + r.date : '';
+    var p = state.profile || {};
+    $('done-who').textContent = (p.firstName || '') + ' ' + (p.lastName || '') + (p.group ? ' · ' + p.group : '');
+    var tick = $('tick'); tick.classList.remove('pop'); void tick.offsetWidth; tick.classList.add('pop');
+    setBusy(false);
+    show('v-done', 'done-title');
+    $('live').textContent = $('done-title').textContent + ' ' + $('done-date').textContent;
+  }
+
+  function closeApp() {
+    try { if (inClient()) { liff.closeWindow(); return; } } catch (x) { /* ignore */ }
+    window.close();
+  }
+
+  // ───── ปุ่ม ─────
+  $('form').addEventListener('submit', submitForm);
+  Array.prototype.forEach.call(document.querySelectorAll('input[name=group]'), function (x) {
+    x.addEventListener('change', function () { syncEmpLabel(); $('f-group').classList.remove('bad'); $('group-msg').hidden = true; });
+  });
+  $('form-cancel').addEventListener('click', function () { if (state.last) showDone('again', state.last); });
+  $('btn-edit').addEventListener('click', function () { openForm('edit'); });
+  $('btn-close').addEventListener('click', closeApp);
+  $('err-close').addEventListener('click', closeApp);
+  $('err-retry').addEventListener('click', function () { var f = state.retry; state.retry = null; if (f) f(); });
+
+  // ───── โหมดทดสอบในเครื่อง (?mock=1 บนไฟล์ในเครื่อง) ─────
+  // ถ้าหน้าทดสอบใส่ window.liff / window.fetch มาเอง จะใช้ของหน้าทดสอบ; ไม่มีก็ใช้ตัวจำลองในหน่วยความจำนี้
+  function installBuiltinMock() {
+    window.liff = { init: function () { return Promise.resolve(); }, isInClient: function () { return true; },
+      getIDToken: function () { return 'mock-token'; }, closeWindow: function () {} };
+    var me = null, today = false;
+    var dateText = function () { var d = new Date(); return d.getDate() + ' ' + ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][d.getMonth()] + ' ' + (d.getFullYear() + 543); };
+    var res = function (o) { return Promise.resolve({ ok: true, status: 200, json: function () { return Promise.resolve(o); } }); };
+    var out = function (ci) { return { ok: true, registered: true, checkedIn: ci, checkedInToday: true, profile: me, date: dateText() }; };
+    window.fetch = function (url, opt) {
+      var b = JSON.parse(opt.body);
+      if (b.action === 'status') { if (!me) return res({ ok: true, registered: false }); var ci = !today; today = true; return res(out(ci)); }
+      if (b.action === 'register' || b.action === 'update') {
+        if (!/^[0-9]+$/.test(b.employeeId || '')) return res({ ok: false, error: 'employee_required' });
+        me = { firstName: b.firstName, lastName: b.lastName, employeeId: b.employeeId, group: b.group };
+        var c2 = b.action === 'register' && !today; if (c2) today = true; return res(out(c2));
+      }
+      return res({ ok: false, error: 'bad_request' });
+    };
+  }
+
+  if (!MOCK && API_PLACEHOLDER) { showError('setup'); return; }   // ยังไม่ได้ใส่ API_URL จริง
+  start();
+})();
+</script>
+</body>
+</html>
