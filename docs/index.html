@@ -144,7 +144,6 @@ fieldset.bad .choice span{border-color:var(--err)}
     </div>
     <h1 id="done-title" tabindex="-1">เช็กอินแล้ว</h1>
     <p class="date" id="done-date"></p>
-    <p class="sub" id="done-sub" hidden>นับแล้ว ไม่ต้องแตะอีก</p>
     <p class="who" id="done-who"></p>
     <div class="stack">
       <button type="button" class="primary" id="btn-close">ปิด</button>
@@ -170,7 +169,7 @@ fieldset.bad .choice span{border-color:var(--err)}
 (function () {
   'use strict';
   var CFG = window.CHECKIN_CONFIG;
-  var BUILD = '5';   // เพิ่มเลขทุกครั้งที่แก้หน้านี้ — หน้าเก่าที่เครื่องจำไว้จะเห็นเลขใหม่แล้วโหลดหน้าใหม่เอง
+  var BUILD = '6';   // เพิ่มเลขทุกครั้งที่แก้หน้านี้ — หน้าเก่าที่เครื่องจำไว้จะเห็นเลขใหม่แล้วโหลดหน้าใหม่เอง
   // โหมดทดสอบ: ต้องมี ?mock=1 และเปิดจากไฟล์ในเครื่อง (file:) เท่านั้น — บน GitHub Pages ไม่ทำงานเด็ดขาด
   var MOCK = /[?&]mock=1(&|$)/.test(location.search) && location.protocol === 'file:';
   // โหมดทดสอบนอกไลน์ (?test=1 บนเว็บ): ให้ login LINE ในเบราว์เซอร์ได้ — ใช้ทดสอบจาก PC เท่านั้น; ฝั่งเซิร์ฟเวอร์ยังตรวจ ID token เหมือนเดิม
@@ -410,7 +409,6 @@ fieldset.bad .choice span{border-color:var(--err)}
     state.last = r;
     state.profile = r.profile || state.profile;
     $('done-title').textContent = kind === 'new' ? 'เช็กอินแล้ว' : kind === 'saved' ? 'บันทึกแล้ว' : 'วันนี้เช็กอินแล้ว';
-    $('done-sub').hidden = kind !== 'again';
     $('done-date').textContent = r.date ? 'วันที่ ' + r.date : '';
     var p = state.profile || {};
     $('done-who').textContent = (p.firstName || '') + ' ' + (p.lastName || '') + (p.group ? ' · ' + p.group : '');
