@@ -33,11 +33,11 @@ p{margin:0 0 16px}
 .nw{white-space:nowrap;display:inline-block}
 
 /* ปุ่ม */
-button{font:inherit;font-size:28px;font-weight:700;line-height:1.25;cursor:pointer;
+button,a.btn{font:inherit;box-sizing:border-box;text-decoration:none;font-size:28px;font-weight:700;line-height:1.25;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   width:100%;min-height:76px;padding:14px 16px;border-radius:18px;border:3px solid var(--line);
   background:#fff;color:var(--ink);text-align:center;touch-action:manipulation}
-.primary{background:var(--green);border-color:var(--greenEdge);color:var(--greenInk)}
+.primary,a.btn.primary{background:var(--green);border-color:var(--greenEdge);color:var(--greenInk)}
 .quiet{min-height:64px;font-size:26px;border-width:2px}
 button:disabled{opacity:.55;cursor:progress}
 :focus-visible{outline:4px solid var(--focus);outline-offset:3px}
@@ -158,6 +158,7 @@ fieldset.bad .choice span{border-color:var(--err)}
     <p class="lead" id="err-text">ตรวจสัญญาณเน็ต แล้วลองอีกครั้ง</p>
     <div class="stack">
       <button type="button" class="primary" id="err-retry">ลองอีกครั้ง</button>
+      <a class="btn primary" id="err-openline" href="https://liff.line.me/2012829279-KAJpnEAO" hidden>เปิดในไลน์</a>
       <button type="button" class="quiet" id="err-close" hidden>ปิด</button>
     </div>
   </section>
@@ -169,7 +170,7 @@ fieldset.bad .choice span{border-color:var(--err)}
 (function () {
   'use strict';
   var CFG = window.CHECKIN_CONFIG;
-  var BUILD = '6';   // เพิ่มเลขทุกครั้งที่แก้หน้านี้ — หน้าเก่าที่เครื่องจำไว้จะเห็นเลขใหม่แล้วโหลดหน้าใหม่เอง
+  var BUILD = '7';   // เพิ่มเลขทุกครั้งที่แก้หน้านี้ — หน้าเก่าที่เครื่องจำไว้จะเห็นเลขใหม่แล้วโหลดหน้าใหม่เอง
   // โหมดทดสอบ: ต้องมี ?mock=1 และเปิดจากไฟล์ในเครื่อง (file:) เท่านั้น — บน GitHub Pages ไม่ทำงานเด็ดขาด
   var MOCK = /[?&]mock=1(&|$)/.test(location.search) && location.protocol === 'file:';
   // โหมดทดสอบนอกไลน์ (?test=1 บนเว็บ): ให้ login LINE ในเบราว์เซอร์ได้ — ใช้ทดสอบจาก PC เท่านั้น; ฝั่งเซิร์ฟเวอร์ยังตรวจ ID token เหมือนเดิม
@@ -206,7 +207,7 @@ fieldset.bad .choice span{border-color:var(--err)}
 
   var ERR = {
     network: ['ต่อเน็ตไม่ได้', 'ตรวจสัญญาณเน็ต| แล้วลองอีกครั้ง', true],
-    notline: ['เปิดลิงก์นี้ในไลน์', 'กลับไปที่กลุ่มไลน์| แล้วแตะลิงก์เช็กอิน|ที่ปักหมุดไว้', false],
+    notline: ['ต้องเปิดในแอปไลน์', '', false],
     token:   ['ต้องเปิดใหม่', 'กดปิด| แล้วแตะลิงก์|ในกลุ่มไลน์อีกครั้ง', true],
     busy:    ['คนใช้พร้อมกันเยอะ', 'รอสักครู่| แล้วลองอีกครั้ง', true],
     server:  ['ระบบขัดข้อง', 'ลองอีกครั้ง| ถ้ายังไม่ได้|ให้บอกผู้ดูแลกลุ่ม', true],
@@ -217,10 +218,12 @@ fieldset.bad .choice span{border-color:var(--err)}
     var e = ERR[kind] || ERR.server;
     $('err-title').textContent = e[0];
     segs($('err-text'), e[1]);
+    $('err-text').hidden = !e[1];
     $('err-icon').className = 'bigicon' + (kind === 'notline' ? ' info' : '');
     $('err-icon').textContent = kind === 'notline' ? 'i' : '!';
     state.retry = retry || null;
     $('err-retry').hidden = !(e[2] && retry);
+    $('err-openline').hidden = kind !== 'notline';
     $('err-close').hidden = !(kind === 'token' || kind === 'notline' || kind === 'setup') || !inClient();
     setBusy(false);
     show('v-error', 'err-title');
